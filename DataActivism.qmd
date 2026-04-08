@@ -1,48 +1,33 @@
 ---
 title: "Data Activism"
 subtitle: "Integrating Data Science and Warehouse Opposition in the Inland Empire" 
-author: "Mike McCarthy"
+author: "Mike McCarthy, PhD"
 date: April 9, 2026
 format: 
-  revealjs:
+  live-revealjs:
     footer: 'Data Activism'
 title-slide-attributes: 
   data-background-size: contain
-  data-background-opacity: "0.5"
+  data-background-opacity: "0.3"
   data-background-image: https://www.pressenterprise.com/wp-content/uploads/2022/12/RPE-L-TOP15-1216-01.jpg?w=886
 bibliography: references.bib
 ---
-
-## Overview
-
--   Biographical context
--   Cumulative Impacts
--   Logistics Sprawl
--   Environmental Justice
--   Coalition Successes
+    
+## Overview 
+  
+-   Origin Story
+-   Data Science and Freight
+-   Disproportionate Burden
+-   Community-led Policy
 -   Future Concerns
 
-## Mega-Warehouse Project
+## Origin Story
 
 ![](./images/WCUP2.png)
 
-## Community Activism
+## R-NOW: Community Opposition
 
-![Image from Will Lester, Press Enterprise, June 13, 2024](./images/JuneWCUPHearing.png)
-
-## Freight Coalition {.smaller}
-
-![](./images/TruckSummit.png){width="80%"}
-
-## History
-
--   Environmental Consultant
-    -   Radical Research LLC
-    -   Sonoma Technology, Inc.
--   Education and Teaching
-    -   Adjunct Professor at Pitzer College - [EA 078 - Environmental Data Visualization](https://radicalresearch.llc/EA078_Fall2024/).
-    -   PhD in Chemistry from UC Berkeley
-    -   BS in Chemistry from Creighton University
+![](./images/RNOW_hike.jpg){width="40%"}
 
 ## A Timely Animation {.smaller}
 
@@ -50,21 +35,9 @@ bibliography: references.bib
 
 [@phillips_op-ed_2022]
 
-## [Warehouse CITY](https://radicalresearch.shinyapps.io/WarehouseCITY/) {.smaller}
-
-![](./images/annotated_dashboard.png)
-
-[@phillips_warehouse_2024]
-
-## Cumulative Impacts
-
--   [14 CCR § 15355(b))](https://www.law.cornell.edu/regulations/california/14-CCR-15355) - the combined environmental changes from an individual project's incremental impacts to other closely related past, present, and future projects
--   [EPA](https://www.epa.gov/system/files/documents/2022-09/Cumulative%20Impacts%20Research%20Final%20Report_FINAL-EPA%20600-R-22-014a.pdf) - the totality of exposures to combinations of chemical and non-chemical stressors and their effects on health, well-being and quality-of-life outcomes
-
-## Logistics Sprawl
-
 ```{r}
 #| label: load libraries
+#| context: setup
 #| message: false
 #| echo: false
 #| warnings: false
@@ -76,7 +49,8 @@ library(tigris)
 library(readxl)
 library(tidycensus)
 library(data.table)
-
+library(shiny)
+library(bslib)
 ```
 
 ```{r}
@@ -114,6 +88,112 @@ warehouses <- st_read(WH.url, quiet = T) |>
 ```
 
 ```{r}
+#| label: import place and county data
+
+SoCalCounties <- counties(state = 'CA', year = 2023, cb = T, progress_bar = F) |> 
+  filter(NAME %in% c('Los Angeles', 'Orange', 'Riverside', 'San Bernardino')) |> 
+  st_transform(crs = 4326)
+
+SoCalCounties2 <- SoCalCounties |> 
+  summarize()
+
+municipalities <- places(state = 'CA', year = 2023, cb = T, progress_bar = F) |> 
+  st_transform(crs =4326) |> 
+  st_filter(SoCalCounties2, .predicate = st_covered_by) |> 
+  select(NAME, geometry)
+
+jurisdiction_name <- municipalities |> 
+  st_set_geometry(value = NULL) |> 
+  arrange(NAME)
+
+```
+
+## Warehouse CITY data product {.smaller}
+
+```{r}
+#| label: Leaflet map of warehouses
+#| 
+
+WHPal <- colorFactor(palette = c('red', 'black', '#F7971D'), domain = warehouses$category)
+
+leaflet() |> 
+  setView(lat = 34.1, lng = -117.60, zoom = 9) |> 
+  addProviderTiles(providers$Esri.WorldImagery, group = 'Imagery') |> 
+  addProviderTiles(providers$CartoDB.Positron, group = 'Basemap')  |>
+  addLayersControl(baseGroups = c('Basemap', 'Imagery'),
+    overlayGroups = c('Warehouses', 'Jurisdictions'), 
+    options = layersControlOptions(collapsed = FALSE),
+    position = 'topright'
+    ) |>
+  hideGroup('Jurisdictions') |> 
+  addLegend(data = warehouses,
+             pal = WHPal,
+             title = 'Status',
+             values = ~category,
+             group = 'Warehouses',
+             position = 'bottomright')  |> 
+  addPolylines(data = municipalities,
+               color = 'brown',
+               weight = 1,
+               group = 'Jurisdictions') |> 
+  addPolygons(data = warehouses,
+               color = ~WHPal(category), 
+                weight = 1,
+                fillOpacity = 0.5,
+                group = 'Warehouses',
+                label = ~paste(apn, class, round(shape_area,-3), ' sq.ft.', year_built)
+   )
+
+```
+
+[@phillips_warehouse_2024]
+
+## [Warehouse CITY](https://radicalresearch.shinyapps.io/WarehouseCITY/) {.smaller}
+
+![](./images/annotated_dashboard.png)
+  
+## Data Science Isn't Enough
+
+![Image from Will Lester, Press Enterprise, June 13, 2024](./images/JuneWCUPHearing.png)
+
+## Working with Community Partners {.smaller}
+
+![](./images/TruckSummit.png){width="80%"}
+
+## Education
+
+- PhD in Chemistry from UC Berkeley - [Prof. Kristie A. Boering](https://boeringgroup.weebly.com/)
+
+![](./images/Fig5_HDO_manuscript.png)
+
+## Work History
+
+![](./images/Logo.png){width=3in}      
+![](./images/Logo_Redford.jpg){width=3in}    
+![](./images/STI.jpg){width=3in}  
+
+## Data Science and Freight
+
+## Data Science Ethos 
+
+-   Open source
+-   Transparent
+-   Reproducible
+-   Accurate
+-   Handcrafted Code
+
+## Methods and tools
+
+![](https://cran.r-project.org/Rlogo.svg){width="20%"}
+![](https://upload.wikimedia.org/wikipedia/commons/6/62/Tidyverse_hex_logo.svg){width="10%"}
+![](https://r-spatial.github.io/sf/logo.png){width="10%"}
+![](https://upload.wikimedia.org/wikipedia/commons/b/bf/Shiny_hex_logo.svg){width="10%"}
+![](https://brand.github.com/_next/static/media/logo-03.cc5e5332.png){width="20%"}
+
+- [EMFAC](https://ww2.arb.ca.gov/our-work/programs/msei/on-road-emfac) on-road emissions model
+
+
+```{r}
 #| label: geographic barycenter calculation
 #| message: false
 #| echo: false
@@ -123,7 +203,6 @@ sf_use_s2(FALSE)
 wh_centroid <- st_centroid(warehouses) |> 
   arrange(desc(shape_area))
 coordinates <- st_coordinates(wh_centroid)
-
 
 wh_centroid$lng <- coordinates[,1]
 wh_centroid$lat <- coordinates[,2]  
@@ -182,6 +261,8 @@ portArc <- portCircle |>
 
 ```
 
+## Logistics Sprawl
+
 ```{r}
 #| label: warehouse waves
 #| caption: Warehouse CITY v1.24 distance arcs by decade
@@ -214,6 +295,8 @@ leaflet() |>
   ) |> 
   addMeasure()
 ```
+
+@cidell_concentration_2010, @dablanc_logistics_2014
 
 ## Warehouse Growth in the IE
 
@@ -252,13 +335,7 @@ whSum2 <- whCumSum |>
 
 ```
 
-## Policy
-
-The Inland Empire was specifically targeted for warehouse development due to its '*abundant and cheap land and a traditionally undereducated population.*' @husing2004
-
-![](./images/SCAG.png){width="50%"}
-
-## Ports to Warehouses
+## Increasing Imports from Asia-Pacific Trade 
 
 ```{r}
 #| label: summarize warehouse area by year
@@ -323,42 +400,39 @@ PortTraffic <- full_join(LA2, LB2, by = c('year')) |>
 
 ```
 
-::: {layout-ncol="2"}
 ```{r}
 #| label: visualize port imports trend
 #| message: false
 #| echo: false
-#| fig-height: 6
-#| fig-width: 5
 
 # display area built from 1981-2025
 ggplot(PortTraffic, 
        aes(x = year, y = imports)) + 
   geom_col() +
   theme_bw(base_size = 14) +
-  labs(title = 'Container imports LA/LB Ports (2002-2025)',
+  labs(title = 'Imports at Los Angeles and Long Beach Ports (2002-2025)',
        x = 'Year',
        y = 'TEUs (twenty-foot equivalent units)',
-       caption = 'Data from Ports of Los Angeles and Long Beach container statistics') +
+       caption = 'Data from Ports of Los Angeles and Long Beach statistics') +
   geom_smooth(method = 'lm', color = 'orange', se = F) +
   annotate(geom = 'text', x = 2010, y = 9000000, label = 'Growth in imports is 2% per year') +
   scale_y_continuous(labels = scales::comma_format())
 
 ```
 
+## Warehouse Growth Follows
+
 ```{r}
 #| label: visualize warehouse trend
 #| message: false
 #| echo: false
-#| fig-height: 6
-#| fig-width: 5
 
 # display area built from 1981-2025
 ggplot(filter(wh_area_summed_by_year, year_built %in% c(2000:2025)), 
        aes(x = year_built, y = sumAcres)) + 
   geom_col() +
   theme_bw(base_size = 14) +
-  labs(title = 'Warehouse area in Southern California (2000-2025)',
+  labs(title = 'Warehouse area (2000-2025)',
        x = 'Year',
        y = 'Acres',
        caption = 'Data from Warehouse City v1.24') +
@@ -366,117 +440,23 @@ ggplot(filter(wh_area_summed_by_year, year_built %in% c(2000:2025)),
   annotate(geom = 'text', x = 2010, y = 55000, label = 'Linear slope fit is 1,092 acres per year') 
 
 ```
-:::
 
-## Inland Shift
+## Externalities 
 
-```{r}
-#| label: import planned warehouse data and population data
-#| message: false
-#| echo: false
+## Air Pollution
 
-#Import planned Warehouse dataset from github repository
-plannedWH.url <- 'https://github.com/RadicalResearchLLC/CEQA_tracker/raw/main/CEQA_WH.geojson'
-plannedWarehouses <- st_read(plannedWH.url, quiet = T) |> 
-  st_set_geometry(value = NULL)
+![](./images/AQMD_freight.png)
 
-#Import population data from CA DoF
-county_pop <- readxl::read_excel('./data/E-1_2025.xlsx', sheet = 'E-1 CountyState2025', skip = 5)
 
-colnames(county_pop) <- c('county', 'pop2024', 'pop2025', 'pctChange')
-```
+From SCAQMD Indirect Source Rules workshop [Presentation](https://www.aqmd.gov/docs/default-source/planning/fbmsm-docs/pres_isr_community-workshop_final_april11-12.pdf?sfvrsn=60e1b961_4) (2023)
 
-```{r}
-#| label: data processing steps and statistics
-#| message: false
-#| echo: false
+## Trucks - Traffic, Road damage, Safety
 
-#Transform and summarize data
-county_stats1 <- plannedWarehouses |> 
-  group_by(county, document_type_bins) |> 
-  summarize(count = n(), sum_area = sum(parcel_area), .groups = 'drop') |> 
-  mutate(acres = round(sum_area/43560, 0)) |> 
-  left_join(county_pop) |> 
-  select(-pctChange) |> 
-  mutate(WH_SF_per_capita = round(sum_area/pop2025, 1))
+![](https://www.pressenterprise.com/wp-content/uploads/2017/08/concrete15ckfm_7422289.jpg?w=863)
 
-county_stats2 <- county_stats1 |> 
-  group_by(county) |> 
-  summarize(countAll = sum(count), acresAll = sum(acres),
-            WH_SF_per_capitaAll = sum(WH_SF_per_capita),
-            .groups = 'drop') 
+- Nikhil Shah - student at Pitzer College
 
-county_stats <- left_join(county_stats1, county_stats2)
-
-```
-
-::::: columns
-::: {.column width="40%"}
-```{r}
-#| label: summarize warehouse area by county
-#| message: false
-#| echo: false
-#| fig-height: 6
-#| fig-width: 5
-
-#visualization of total acreage by county
-  ggplot() +
-    geom_col(data = county_stats, 
-      aes(x = acres, y = reorder(county, acresAll), 
-          fill = document_type_bins)) +
-      theme_bw(base_size = 14) +
-      labs(x = 'Acres', y = '', 
-           title = 'CEQA warehouse acreage 2020-2026',
-           fill = 'CEQA Category',
-            caption = 'Warehouse data from CEQANET') +
-      scale_fill_manual(values = c('darkred', 'grey40'), 
-           breaks = c('Approved', 'CEQA Review')) +
-      scale_x_continuous(expand = c(0,0)) +
-      theme(legend.position = 'none')
-```
-:::
-
-::: {.column width="\"60%"}
-```{r}
-#| label: summarize warehouse area per capita
-#| message: false
-#| echo: false
-#| fig-height: 6
-#| fig-width: 6
-
-# visualization of per capita area
-     ggplot() +
-      geom_col(data = county_stats, 
-                aes(x = WH_SF_per_capita, 
-                    y = reorder(county, WH_SF_per_capitaAll), 
-                    fill = document_type_bins)) +
-        theme_bw(base_size=14) +
-        labs(x = 'Additional Warehouse SQ FT per capita', y = '', 
-           title = 'CEQA warehouse acreage 2020-2026 per capita',
-           caption = 'Warehouse data from CEQANET
-                      Population from CA DoF Table E-1',
-           fill = 'CEQA category') +
-        scale_fill_manual(values = c('darkred', 'grey40'), 
-           breaks = c('Approved', 'CEQA Review')) +
-        scale_x_continuous(expand = c(0,0))
-
-```
-:::
-:::::
-
-## Externalities and Sprawl {.smaller}
-
--   Air pollution
--   Transportation conflicts
--   Greenhouse gas emissions
--   Noise
--   Urban heat island
--   Stormwater management and groundwater recharge
--   Habitat and open-space loss
--   Sensitive receptor land-use conflicts
--   Job quality and automation
-
-## Warehouse Employment Trend
+## Jobs - Quantity, Quality, and Density{visibility="hidden"}
 
 ```{r}
 #| label: import jobs data
@@ -554,8 +534,104 @@ IEData_2019_fwd |>
 -   12% of vehicles on IE freeways are trucks (2x LA/OC)
 -   10,000 acres of approved warehouses and 10,000 acres under environmental review
 -   1-in-6 IE jobs are warehouse related
+-   Warehouse growth rate is 4 times faster than population growth
 
-## Highest Warehouse Area Municipalities
+## Disproportionate Burden
+
+## Warehouse Growth Shifts Inland
+
+```{r}
+#| label: import planned warehouse data and population data
+#| message: false
+#| echo: false
+
+#Import planned Warehouse dataset from github repository
+plannedWH.url <- 'https://github.com/RadicalResearchLLC/CEQA_tracker/raw/main/CEQA_WH.geojson'
+plannedWarehouses <- st_read(plannedWH.url, quiet = T) |> 
+  st_set_geometry(value = NULL)
+
+#Import population data from CA DoF
+county_pop <- readxl::read_excel('./data/E-1_2025.xlsx', sheet = 'E-1 CountyState2025', skip = 5)
+
+colnames(county_pop) <- c('county', 'pop2024', 'pop2025', 'pctChange')
+```
+
+```{r}
+#| label: data processing steps and statistics
+#| message: false
+#| echo: false
+
+#Transform and summarize data
+county_stats1 <- plannedWarehouses |> 
+  group_by(county, document_type_bins) |> 
+  summarize(count = n(), sum_area = sum(parcel_area), .groups = 'drop') |> 
+  mutate(acres = round(sum_area/43560, 0)) |> 
+  left_join(county_pop) |> 
+  select(-pctChange) |> 
+  mutate(WH_SF_per_capita = round(sum_area/pop2025, 1))
+
+county_stats2 <- county_stats1 |> 
+  group_by(county) |> 
+  summarize(countAll = sum(count), acresAll = sum(acres),
+            WH_SF_per_capitaAll = sum(WH_SF_per_capita),
+            .groups = 'drop') 
+
+county_stats <- left_join(county_stats1, county_stats2)
+
+```
+
+```{r}
+#| label: summarize warehouse area by county
+#| message: false
+#| echo: false
+
+#visualization of total acreage by county
+  ggplot() +
+    geom_col(data = county_stats, 
+      aes(x = acres, y = reorder(county, acresAll), 
+          fill = document_type_bins)) +
+      theme_bw(base_size = 14) +
+      labs(x = 'Acres', y = '', 
+           title = 'CEQA acreage 2020-2026',
+           fill = 'CEQA Category',
+            caption = 'Warehouse data from CEQANET') +
+      scale_fill_manual(values = c('darkred', 'grey40'), 
+           breaks = c('Approved', 'CEQA Review')) +
+      scale_x_continuous(expand = c(0,0)) 
+```
+
+## Warehouse Burdens are Inequitable{visibility="hidden"}
+
+```{r}
+#| label: summarize warehouse area per capita
+#| message: false
+#| echo: false
+
+# visualization of per capita area
+     ggplot() +
+      geom_col(data = county_stats, 
+                aes(x = WH_SF_per_capita, 
+                    y = reorder(county, WH_SF_per_capitaAll), 
+                    fill = document_type_bins)) +
+        theme_bw(base_size=14) +
+        labs(x = 'Additional Warehouse SQ FT per capita', y = '', 
+           title = 'CEQA acreage per capita',
+           caption = 'Warehouse data from CEQANET
+                      Population from CA DoF Table E-1',
+           fill = 'CEQA category') +
+        scale_fill_manual(values = c('darkred', 'grey40'), 
+           breaks = c('Approved', 'CEQA Review')) +
+        scale_x_continuous(expand = c(0,0))
+
+```
+
+## Cheap Dirt and Undereducated Population
+
+![](./images/SCAG.png){width="50%"}
+
+@husing2004, @flanigan_smile_2009, @lara2018, @patterson2014
+
+## Warehouse Burden in the IE
 
 ```{r}
 #| label: import census population data
@@ -670,7 +746,6 @@ filtered_stats <- combo_statsPerCapita |>
 #| message: false
 #| echo: false
 
-
 filtered_stats |> 
   filter(pop2024 > 10000) |> 
   filter(existingPerCap > 400) |> 
@@ -691,7 +766,7 @@ filtered_stats |>
 
 ```
 
-## Municipalities with Highest Warehouse Growth
+## Municipalities with Highest Warehouse Growth {visibility='hidden'}
 
 ```{r}
 #| label: summarize warehouse area proposed or under review
@@ -713,7 +788,7 @@ filtered_stats |>
 
 ```
 
-## Population and Housing
+## Population and Housing {visibility='hidden'}
 
 ```{r}
 #| label: SoCal Population
@@ -768,15 +843,177 @@ ggplot(pop_timeSeries, aes(x = year, y = population)) +
 
 ```
 
-## Bloomington
+## Displacement in Bloomington
 
-![](./images/BloomingtonAnnotated.png)
+```{r}
+#| label: Bloomington displacement processing
+#| message: false
+#| echo: false
 
-## Mead Valley
+place <- filter(municipalities, NAME == 'Bloomington')
+zoning <- sf::st_read(dsn = './data/Zoning_for_San_Bernardino_County.geojson',
+                      quiet = T) |> 
+  st_intersection(place)
 
-![](./images/MeadValley_FoundationChanges.png)
+zoning2 <- zoning |> 
+  select(ZONING, geometry, Shape__Area, LUD) |> 
+  mutate(LUD2 = case_when(
+    LUD %in% c('CG', 'CN', 'CS') ~ 'Commercial',
+    LUD == 'IC' ~ 'Industrial (IC-Light)',
+    LUD == 'IR' ~ 'Industrial (IR-Heavy)',
+    LUD ==  'RL' ~ 'Residential (Rural)',
+    LUD == 'RS' ~ 'Residential (VLDR or LDR)',
+    LUD == 'RM' ~ 'Residential (MDR)',
+    LUD == 'IN' ~ 'Public Facilities',
+    LUD == 'SP' ~ 'Special District (Industrial)',
+    .default = 'Special District (other)'
+  ))
 
-## Coalition Successes
+ZonePal <- colorFactor(domain = c('Commercial',
+                                  'Industrial (IC-Light)',
+                                  'Industrial (IR-Heavy)',
+                                  'Residential (Rural)',
+                                  'Residential (VLDR or LDR)',
+                                  'Residential (MDR)',
+                                  'Public Facilities',
+                                  'Special District (Industrial)',
+                                  'Special District (other)'),
+                       palette = c('red', 'grey40', 'grey10', 'darkgreen',
+                        'darkorange','yellow', 'gold',
+                        'grey90', 'purple'
+                       )
+)
+
+lawsuit_wh <- warehouses |>  
+  filter(apn %in% c('West Valley Logistics Center (WVLC)',
+                    '025918141', '025918142', '026002115')) |> 
+  st_transform(crs = 4326)
+
+wh_annotation <- warehouses |> 
+  bind_rows(lawsuit_wh) |> 
+  filter(apn %in% c('Bloomington Business Park',
+                    'Duke warehouse Slover and Alder',
+                    'West Valley Logistics Center (WVLC)',
+                    'Slover/Cactus Avenue Warehouse',
+                    '025709136',
+                    '025918141', '025918142', '026002115',
+                    '025604153')) |> 
+  mutate(apn2 = case_when(
+    apn %in% c('025918141', '025918142', '026002115') ~ 'Rialto Commerce Center',
+    apn == '025604153' ~ 'Slover DC',
+    apn == '025709136' ~ 'Bloomington Industrial Facility',
+    apn == 'Duke warehouse Slover and Alder' ~ 'Duke Warehouse',
+    apn == 'west valley logistics center' ~ 'West Valley Logistics Center',
+    .default = apn
+  )) |> 
+  select(apn2, geometry, year_built)  
+
+wh_annotation2 <- wh_annotation |> 
+  group_by(apn2) |> 
+  summarize() |> 
+  st_centroid()
+
+```
+
+```{r}
+#| label: Bloomington displacement map
+#| message: false
+#| echo: false
+
+leaflet() |> 
+  addProviderTiles(provider = providers$Esri.WorldImagery) |> 
+  addPolygons(data = zoning2,
+              color = ~ZonePal(LUD2),
+              fillOpacity = 0.5,
+              weight = 2) |> 
+  addPolylines(data = place,
+               color = 'black') |> 
+  addLegend(data = zoning2,
+            title = '2024 Zoning',
+            pal = ZonePal,
+            values = ~LUD2)  |> 
+  addPolylines(data = wh_annotation,
+               color = 'cyan',
+               weight = 4,
+               label = ~apn2) |> 
+  addLabelOnlyMarkers(data = wh_annotation2,
+                      label = ~apn2,
+                      labelOptions = labelOptions(noHide = TRUE,
+                                                  direction = 'bottom',
+                                                  style = list(
+                                                    "font-size" = '10px'
+                                                  ))
+  )
+
+```
+
+## Displacement in Mead Valley
+
+```{r}
+#| label: Mead Valley displacement processing 
+#| message: false
+#| echo: false
+
+RivWH <- filter(warehouses, county == 'Riverside County')
+
+MeadValley <- filter(municipalities, NAME == 'Mead Valley')
+
+fgpa <- sf::st_read(dsn = './data/RivCoFGPA.gdb', quiet = T) |> 
+  st_transform(crs = 4326) |> 
+  st_filter(MeadValley) |> 
+  filter(Grouping != 'C') |> 
+  arrange(CASE_ID)
+
+fgpa_centroids <- fgpa |> 
+  st_centroid()
+
+
+```
+
+
+```{r}
+#| label: Mead Valley displacement map
+#| echo: false
+
+palWH <- colorFactor(palette = c('darkred', 'orange', 'black'),
+                     domain = RivWH$category)
+
+leaflet() |> 
+  addProviderTiles(provider = providers$Esri.WorldImagery) |>  ## We modified this line to change to satellite view |> 
+  addPolylines(data = MeadValley,
+               color = 'blue',
+               weight = 5) |> 
+  addPolygons(data = RivWH,
+             color = ~palWH(category),
+             weight = 2,
+             fillOpacity = 0.5) |> 
+  addPolygons(data = fgpa,
+              color = 'chartreuse',
+              weight = 2,
+              fillOpacity = 0.6,
+              label = ~CASE_ID) |> 
+  addLegend(data = warehouses,
+            title = 'Warehouse Category',
+            values = ~category,
+            pal= palWH,
+            position = 'topleft') |> 
+ # addLabelOnlyMarkers(data = fgpa_centroids,
+  #                    label = ~CASE_ID,
+   #                   labelOptions = labelOptions(
+  #                      noHide = T,
+   #                     textOnly = T,
+  #                      textsize = '10px',
+  #                      style = list(
+   #                       'color' = 'white'
+  #                      )
+   #                   )) |> 
+  setView(zoom = 13, lat = 33.83, lng = -117.26) 
+ 
+
+```
+
+
+## Community-led Policy
 
 ## R-NOW {.smaller}
 
@@ -784,12 +1021,21 @@ ggplot(pop_timeSeries, aes(x = year, y = population)) +
 -   City of Riverside [approves stricter regulations on warehouses](https://riversiderecord.org/riverside-approves-updates-to-zoning-code-adds-stricter-regulations-on-warehouses/)
 -   Won \$5,000 grant from Rose Foundation [California Wildlands Grassroots Fund](https://rosefdn.org/environmental-grants/california-wildlands-grassroots-fund/) ![](./images/RNP_awards.jpg){width="50%"}
 
-## Sierra Club {.smaller}
+## Sierra Club {visibility='hidden'}
 
 ![](./images/MoVal_TruckRoutes.png){width="80%"}
 
 -   [Revisions to Truck Route Map](https://experience.arcgis.com/experience/13bc449c75504c4cb297b12d15c8b987)
 -   Legal victory over city of [Moreno Valley indadequate Climate Action Plan](https://www.sierraclub.org/press-releases/2024/05/sierra-club-wins-legal-victory-clean-air-moreno-valley)
+
+## Region in Crisis
+
+![](./images/regionInCrisis.png){height="5in"}  
+
+## Assembly Bill 98
+
+- Assembly Bill 98 (Carrillo, 2024) 
+- [Warehouse CITY School](https://radicalresearch.shinyapps.io/WarehouseCITY_school/) for AB 1000 vs AB 1748 in 2023
 
 ## Freight Communities Action Coalition {.smaller}
 
@@ -798,32 +1044,51 @@ ggplot(pop_timeSeries, aes(x = year, y = population)) +
 
 ![](./images/FCAC_keyLeaders.jpg){width="80%"}
 
-## State and Regional Coalition Successes {.smaller}
+## Local Coalition Successes{visibility="hidden"}
 
--   State
-    -   [Assembly Bill 98](https://calmatters.org/economy/2024/09/inland-empire-warehouse-bill/) and follow-up bills SB 415 and AB 735
--   Regional
-    - South Coast Air Quality Management District [Warehouse Indirect Source Rule - Rule 2305](https://www.aqmd.gov/home/rules-compliance/compliance/waire-program)
-    -   [Region in Crisis Report](https://www.ccaej.org/regionincrisis) - @regioni2023
+-   [Airport Gateway Specific Plan - 2024 & 2025](https://iecn.com/san-bernardino-agency-cancels-airport-project/)
+-   [Bloomington Business Park - 2024](https://calmatters.org/environment/2024/10/newsom-and-judge-throw-wet-blanket-on-inland-empire-warehouse-boom/)
+-   [Newland Simpson Project - 2025 & 2026](https://www.pressenterprise.com/2026/03/11/hemet-warehouse-proposal-rejected-for-the-third-time/)
+-   [Perris Warehouse Moratorium - 2026](https://riversiderecord.org/perris-city-council-extends-warehouse-moratorium-to-december/)
+-   [Perris Updated Good Neighbor Guidelines - 2025 ](https://www.facebook.com/CityOfPerris/posts/january-13-2026-perris-city-council-meeting-highlightsat-its-regular-meeting-the/1181400970813900/)
+-   [Freeway Corridor Specific Plan - 2026](https://www.communityforwardredlands.com/yucaipa-rescinds-warehouse-linked-corridor-plan/)
 
-## Local Coalition Successes
-
--   [Airport Gateway Specific Plan](https://iecn.com/san-bernardino-agency-cancels-airport-project/)
--   [Bloomington Business Park](https://calmatters.org/environment/2024/10/newsom-and-judge-throw-wet-blanket-on-inland-empire-warehouse-boom/)
--   [Newland Simpson Project](https://www.pressenterprise.com/2026/03/11/hemet-warehouse-proposal-rejected-for-the-third-time/)
--   [Warehouse Moratorium](https://riversiderecord.org/perris-city-council-extends-warehouse-moratorium-to-december/)
--   [Perris Updated Good Neighbor Guidelines](https://www.facebook.com/CityOfPerris/posts/january-13-2026-perris-city-council-meeting-highlightsat-its-regular-meeting-the/1181400970813900/)
--   [Freeway Corridor Specific Plan](https://www.communityforwardredlands.com/yucaipa-rescinds-warehouse-linked-corridor-plan/)
-
-## Future Concerns
+## Freight Shocks and Vulnerability
 
 ## Geopolitical Instability
 
 ![](https://platform.theverge.com/wp-content/uploads/sites/2/chorus/uploads/chorus_asset/file/6438793/this-is-fine.jpg?quality=90&strip=all&crop=8.3333333333333%2C0%2C83.333333333333%2C100&w=750)
 
-## Automation
+## Jobs - Quality, Quantity, Density
 
-![](https://assets.aboutamazon.com/07/2b/a30de91842d0a8d5c3cbe3296cac/about-amazon-hero-inline003-amazon-deliveringthefuture-shv1-robotics-roboticarms-2550x1434.jpg)
+```{r}
+#| label: job trends future
+#| message: false
+#| echo: false
+
+IEData_2019_fwd |> 
+  filter(industry_title != 'Manufacturing') |> 
+  filter(date2 > mdy('12-31-2020')) |> 
+  ggplot(aes(x = date2, y = current_employment, fill = industry_title)) +
+  geom_col() +
+  theme_bw(base_size = 16) +
+  scale_y_continuous(labels = scales::comma_format()) +
+  labs(x = '', y = 'Employment Numbers', fill = 'Industry category',
+       title = 'Inland Empire Logistics Job Trends 2021-2025',
+       caption = 'Data from CA EDD Labor Market Info - 
+       www.labormarketinfo.edd.ca.gov')+
+  geom_hline(yintercept = latestJobs2, color = 'darkred', linetype = 'dashed') +
+  scale_x_date(date_label = '%b-%y', 
+               breaks = seq(as.Date('2021-01-01'),
+                            as.Date(currentYMD2),
+                            by = '6 months'),
+               expand = c(0,0)) +
+  scale_fill_manual(values = c('grey60', 'grey30')) +
+  annotate('text', x = lubridate::mdy('01/01/2025'), y = latestJobs2 + 15000, 
+           color = 'darkred', label = paste('Current employment - ', latestJobs2)) +
+  theme(legend.position = 'bottom',
+        text = element_text(size = 12))
+```
 
 ## Climate Change
 
@@ -861,16 +1126,23 @@ co2 |>
   geom_smooth(se = F)
 ```
 
+## Research Directions
+
+- Warehouse USA, then Warehouse WORLD
+- Social Determinants of Health
+- Legacy land-use
+
+
 ## Acknowledgements {.smaller}
 
-- Professor Susan A. Phillips
-- CCAEJ - Ana Gonzelez, Tatiana Flores, Joaquin Castillejos
-- Sierra Club - Mary Ann Ruiz, George Hague, Karla Cervantes
-- R-NOW - Jennifer Larratt-Smith, Jerry Shearer, Andrew Silva
-- Franco Pacheco
-- Graham Brady 
-- PCEJ, Perris Neighbors in Action, Save Temescal Valley, Focus Nuevo, Green Coalition of San Jacinto, Rural Association of Mead Valley, Inland Valley Alliance for Environmental Justice
-- California Air Resources Board and California Climate Investments
-- Rose Foundation
+-   Professor Susan A. Phillips
+-   CCAEJ - Ana Gonzelez, Tatiana Flores, Joaquin Castillejos
+-   Sierra Club - Mary Ann Ruiz, George Hague, Karla Cervantes
+-   R-NOW - Jennifer Larratt-Smith, Jerry Shearer, Andrew Silva
+-   Franco Pacheco
+-   Graham Brady
+-   PCEJ, Perris Neighbors in Action, Save Temescal Valley, Focus Nuevo, Green Coalition of San Jacinto, Rural Association of Mead Valley, Inland Valley Alliance for Environmental Justice
+-   California Air Resources Board and California Climate Investments
+-   Rose Foundation
 
-## References
+## References {.smaller}
